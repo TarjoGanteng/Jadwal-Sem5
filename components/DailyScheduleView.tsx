@@ -30,7 +30,14 @@ export default function DailyScheduleView({
 }: DailyScheduleViewProps) {
   const [selectedDay, setSelectedDay] = useState<DayType>('Senin');
 
-  // Default ke Senin
+  // Auto-select today's day on mount
+  useEffect(() => {
+    const todayIndex = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
+    if (todayIndex >= 1 && todayIndex <= 5) {
+      const daysMap: DayType[] = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
+      setSelectedDay(daysMap[todayIndex - 1]);
+    }
+  }, []);
 
   const dayCourses = courses
     .filter(c => c.day === selectedDay)
