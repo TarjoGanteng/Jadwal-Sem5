@@ -84,6 +84,23 @@ body {
     var(--bg-base);
 }
 
+/* Biarkan halaman utama scroll natural ketika Agenda Harian aktif */
+.app--scrollable {
+  height: auto;
+  min-height: 100vh;
+  overflow: visible;
+}
+
+.app--scrollable .grid-wrapper {
+  overflow: visible;
+  overflow-y: visible;
+  flex: none;
+}
+
+:has(.app--scrollable) {
+  overflow: auto !important;
+}
+
 /* ── App Header ── */
 .app-header {
   flex-shrink: 0;
@@ -300,6 +317,7 @@ body {
 .grid-wrapper {
   flex: 1;
   overflow: hidden;
+  overflow-y: auto; /* Allow scrolling for daily view */
   display: flex;
   flex-direction: column;
   padding: 0;

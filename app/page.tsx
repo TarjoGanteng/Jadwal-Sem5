@@ -88,7 +88,7 @@ export default function HomePage() {
   const totalMatkul = courses.length;
 
   return (
-    <main className="app">
+    <main className={`app ${viewMode === 'daily' ? 'app--scrollable' : ''}`}>
       {/* ── Header ── */}
       <header className="app-header">
         <div className="header-content">
