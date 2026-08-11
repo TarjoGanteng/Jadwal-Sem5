@@ -6,12 +6,14 @@ import { defaultSchedule } from '@/data/defaultSchedule';
 import ScheduleGrid from '@/components/ScheduleGrid';
 import EditModal from '@/components/EditModal';
 import DetailSheet from '@/components/DetailSheet';
+import DailyScheduleView from '@/components/DailyScheduleView';
 
 export default function HomePage() {
   // Langsung tampilkan defaultSchedule — tidak ada loading spinner
   const [courses, setCourses] = useState<Course[]>(defaultSchedule);
   const [canSave, setCanSave] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'daily'>('grid');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | undefined>();
   const [detailCourse, setDetailCourse] = useState<Course | null>(null);
@@ -21,12 +23,13 @@ export default function HomePage() {
   });
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
-  // Deteksi touch/mobile device
+  // Deteksi touch/mobile device & sesuaikan viewMode default
   useEffect(() => {
-    const check = () => setIsMobile(window.matchMedia('(hover: none) and (pointer: coarse)').matches);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
+    const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    setIsMobile(isTouch);
+    if (isTouch) {
+      setViewMode('daily');
+    }
   }, []);
 
   // Setelah mount, load dari localStorage secara diam-diam (tanpa spinner)
@@ -140,13 +143,39 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* ── Schedule Grid ── */}
+      {/* ── View Toggle Segmented Control ── */}
+      <div className="view-toggle-container">
+        <div className="view-toggle">
+          <button
+            className={`view-toggle-btn ${viewMode === 'daily' ? 'view-toggle-btn--active' : ''}`}
+            onClick={() => setViewMode('daily')}
+          >
+            📋 Agenda Harian
+          </button>
+          <button
+            className={`view-toggle-btn ${viewMode === 'grid' ? 'view-toggle-btn--active' : ''}`}
+            onClick={() => setViewMode('grid')}
+          >
+            📅 Tabel Grid
+          </button>
+        </div>
+      </div>
+
+      {/* ── Schedule Content ── */}
       <div className="grid-wrapper">
-        <ScheduleGrid
-          courses={courses}
-          onCourseClick={openEditModal}
-          onAddClick={openAddModal}
-        />
+        {viewMode === 'daily' ? (
+          <DailyScheduleView
+            courses={courses}
+            onCourseClick={openEditModal}
+            onAddClick={openAddModal}
+          />
+        ) : (
+          <ScheduleGrid
+            courses={courses}
+            onCourseClick={openEditModal}
+            onAddClick={openAddModal}
+          />
+        )}
       </div>
 
       {/* ── Edit/Add Modal ── */}
