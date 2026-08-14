@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Course, DayType, timeToMinutes } from '@/lib/schedule';
 
 const DAYS: DayType[] = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
@@ -17,22 +17,62 @@ const TYPE_COLOR: Record<string, string> = {
   Praktik: '#ef4444',
 };
 
+const LONG_PRESS_MS = 3000;
+
 interface DailyScheduleViewProps {
   courses: Course[];
-  onCourseClick: (course: Course) => void;
+  onCourseLongPress: (course: Course) => void; // tahan 3s → edit
   onAddClick: (day: DayType, startTime: string) => void;
 }
 
 export default function DailyScheduleView({
   courses,
-  onCourseClick,
+  onCourseLongPress,
   onAddClick,
 }: DailyScheduleViewProps) {
   const [selectedDay, setSelectedDay] = useState<DayType>('Senin');
 
-  // Auto-select today's day on mount
+  // Long-press state
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didLongPress   = useRef(false);
+  const [pressingId, setPressingId] = useState<string | null>(null);
+
+  const cancelLongPress = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    setPressingId(null);
+  }, []);
+
+  // Mobile: tahan 3 detik → edit
+  const handleTouchStart = useCallback((course: Course) => {
+    didLongPress.current = false;
+    setPressingId(course.id);
+    longPressTimer.current = setTimeout(() => {
+      didLongPress.current = true;
+      setPressingId(null);
+      if (navigator.vibrate) navigator.vibrate(50);
+      onCourseLongPress(course);
+    }, LONG_PRESS_MS);
+  }, [onCourseLongPress]);
+
+  // Mobile: lepas sebelum 3 detik → tidak ada aksi (info sudah tampil di card)
+  const handleTouchEnd = useCallback(() => {
+    cancelLongPress();
+    didLongPress.current = false;
+  }, [cancelLongPress]);
+
+  // Desktop: double-click → edit
+  const [flashId, setFlashId] = useState<string | null>(null);
+  const handleDoubleClick = useCallback((course: Course) => {
+    setFlashId(course.id);
+    setTimeout(() => setFlashId(null), 300);
+    onCourseLongPress(course); // reuse handler — same action (open edit modal)
+  }, [onCourseLongPress]);
+
   useEffect(() => {
-    const todayIndex = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const todayIndex = new Date().getDay();
     if (todayIndex >= 1 && todayIndex <= 5) {
       const daysMap: DayType[] = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
       setSelectedDay(daysMap[todayIndex - 1]);
@@ -45,7 +85,7 @@ export default function DailyScheduleView({
 
   return (
     <div className="daily-view-container">
-      {/* Premium Day Tab Bar */}
+      {/* Day Tab Bar */}
       <div className="day-tabs">
         {DAYS.map(day => {
           const count = courses.filter(c => c.day === day).length;
@@ -63,7 +103,7 @@ export default function DailyScheduleView({
         })}
       </div>
 
-      {/* Agenda Timeline Agenda */}
+      {/* Agenda list */}
       <div className="daily-agenda">
         {dayCourses.length > 0 ? (
           <div className="agenda-list">
@@ -72,9 +112,16 @@ export default function DailyScheduleView({
               return (
                 <div
                   key={course.id}
-                  className="agenda-card"
+                  className={[
+                    'agenda-card',
+                    pressingId === course.id ? 'agenda-card--pressing' : '',
+                    flashId    === course.id ? 'agenda-card--flash'    : '',
+                  ].join(' ')}
                   style={{ borderLeftColor: color }}
-                  onClick={() => onCourseClick(course)}
+                  onDoubleClick={() => handleDoubleClick(course)}
+                  onTouchStart={() => handleTouchStart(course)}
+                  onTouchEnd={handleTouchEnd}
+                  onTouchMove={cancelLongPress}
                 >
                   <div className="agenda-card__header">
                     <span
@@ -134,7 +181,6 @@ export default function DailyScheduleView({
           <button
             className="agenda-add-btn"
             onClick={() => {
-              // Get next logical start time based on last course or default
               const lastCourse = dayCourses[dayCourses.length - 1];
               const nextStart = lastCourse ? lastCourse.endTime : '08:00';
               onAddClick(selectedDay, nextStart);

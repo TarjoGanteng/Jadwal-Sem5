@@ -19,16 +19,18 @@ export default function DetailSheet({ course, onEdit, onClose }: DetailSheetProp
   return (
     <div className="detail-overlay" onClick={onClose}>
       <div className="detail-sheet" onClick={e => e.stopPropagation()}>
-        {/* Handle bar */}
-        <div className="detail-handle" />
-
-        {/* Header */}
-        <div className="detail-header">
-          <span
-            className={`course-badge ${course.type === 'Praktik' ? 'course-badge--praktik' : 'course-badge--teori'}`}
-          >
-            {course.type}
-          </span>
+        {/* Header — popup style mirip Edit Modal */}
+        <div className="detail-header" style={{ paddingTop: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span
+              className={`course-badge ${course.type === 'Praktik' ? 'course-badge--praktik' : 'course-badge--teori'}`}
+            >
+              {course.type}
+            </span>
+            <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-primary)' }}>
+              Detail Mata Kuliah
+            </span>
+          </div>
           <button className="detail-close" onClick={onClose} aria-label="Tutup">✕</button>
         </div>
 

@@ -32,11 +32,12 @@ for (let m = START_MINUTE; m <= END_MINUTE; m += 30) {
 
 interface ScheduleGridProps {
   courses: Course[];
-  onCourseClick: (course: Course) => void;
+  onCourseLongPress: (course: Course) => void;
+  onCourseDoubleClick: (course: Course) => void;
   onAddClick: (day: DayType, startTime: string) => void;
 }
 
-export default function ScheduleGrid({ courses, onCourseClick, onAddClick }: ScheduleGridProps) {
+export default function ScheduleGrid({ courses, onCourseLongPress, onCourseDoubleClick, onAddClick }: ScheduleGridProps) {
   const gridHeight = (END_MINUTE - START_MINUTE) * PX_PER_MINUTE;
 
   const handleDayClick = (e: React.MouseEvent<HTMLDivElement>, day: DayType) => {
@@ -113,7 +114,8 @@ export default function ScheduleGrid({ courses, onCourseClick, onAddClick }: Sch
                     course={course}
                     top={top}
                     height={height}
-                    onClick={() => onCourseClick(course)}
+                    onDoubleClick={() => onCourseDoubleClick(course)}
+                    onLongPress={() => onCourseLongPress(course)}
                   />
                 );
               })}

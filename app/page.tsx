@@ -5,18 +5,15 @@ import { Course, DayType, loadSchedule, saveSchedule } from '@/lib/schedule';
 import { defaultSchedule } from '@/data/defaultSchedule';
 import ScheduleGrid from '@/components/ScheduleGrid';
 import EditModal from '@/components/EditModal';
-import DetailSheet from '@/components/DetailSheet';
 import DailyScheduleView from '@/components/DailyScheduleView';
 
 export default function HomePage() {
-  // Langsung tampilkan defaultSchedule — tidak ada loading spinner
   const [courses, setCourses] = useState<Course[]>(defaultSchedule);
   const [canSave, setCanSave] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'daily'>('grid');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | undefined>();
-  const [detailCourse, setDetailCourse] = useState<Course | null>(null);
   const [modalDefaults, setModalDefaults] = useState<{ day: DayType; startTime: string }>({
     day: 'Senin',
     startTime: '08:00',
@@ -27,12 +24,10 @@ export default function HomePage() {
   useEffect(() => {
     const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
     setIsMobile(isTouch);
-    if (isTouch) {
-      setViewMode('daily');
-    }
+    if (isTouch) setViewMode('daily');
   }, []);
 
-  // Setelah mount, load dari localStorage secara diam-diam (tanpa spinner)
+  // Load dari localStorage setelah mount
   useEffect(() => {
     setCourses(loadSchedule(defaultSchedule));
     setCanSave(true);
@@ -43,25 +38,15 @@ export default function HomePage() {
     if (canSave) saveSchedule(courses);
   }, [courses, canSave]);
 
+  // Buka modal tambah matkul baru
   const openAddModal = useCallback((day: DayType, startTime: string) => {
     setSelectedCourse(undefined);
     setModalDefaults({ day, startTime });
     setIsModalOpen(true);
   }, []);
 
+  // Buka modal edit matkul — dipakai oleh double-click (desktop) & long-press (HP)
   const openEditModal = useCallback((course: Course) => {
-    if (isMobile) {
-      // HP: tampilkan detail sheet dulu
-      setDetailCourse(course);
-    } else {
-      // Desktop: langsung buka edit modal
-      setSelectedCourse(course);
-      setIsModalOpen(true);
-    }
-  }, [isMobile]);
-
-  const openEditModalDirect = useCallback((course: Course) => {
-    setDetailCourse(null);
     setSelectedCourse(course);
     setIsModalOpen(true);
   }, []);
@@ -84,7 +69,7 @@ export default function HomePage() {
     setShowResetConfirm(false);
   };
 
-  const totalSks = courses.reduce((sum, c) => sum + c.sks, 0);
+  const totalSks    = courses.reduce((sum, c) => sum + c.sks, 0);
   const totalMatkul = courses.length;
 
   return (
@@ -139,7 +124,10 @@ export default function HomePage() {
 
         {/* Hint bar */}
         <div className="hint-bar">
-          <span>💡 Klik pada kolom hari untuk tambah mata kuliah · Klik kartu untuk edit</span>
+          {isMobile
+            ? <span>💡 Tap kartu untuk lihat detail · Tahan 3 detik untuk edit · Tap di kolom hari untuk tambah</span>
+            : <span>💡 Arahkan kursor ke jadwal untuk detail · <strong>Klik 2× untuk edit</strong> · Klik kolom hari untuk tambah matkul</span>
+          }
         </div>
       </header>
 
@@ -166,19 +154,20 @@ export default function HomePage() {
         {viewMode === 'daily' ? (
           <DailyScheduleView
             courses={courses}
-            onCourseClick={openEditModal}
+            onCourseLongPress={openEditModal}
             onAddClick={openAddModal}
           />
         ) : (
           <ScheduleGrid
             courses={courses}
-            onCourseClick={openEditModal}
+            onCourseLongPress={openEditModal}
+            onCourseDoubleClick={openEditModal}
             onAddClick={openAddModal}
           />
         )}
       </div>
 
-      {/* ── Edit/Add Modal ── */}
+      {/* ── Edit / Add Modal ── */}
       {isModalOpen && (
         <EditModal
           course={selectedCourse}
@@ -187,15 +176,6 @@ export default function HomePage() {
           onSave={handleSave}
           onDelete={handleDelete}
           onClose={() => setIsModalOpen(false)}
-        />
-      )}
-
-      {/* ── Mobile Detail Sheet ── */}
-      {detailCourse && (
-        <DetailSheet
-          course={detailCourse}
-          onEdit={() => openEditModalDirect(detailCourse)}
-          onClose={() => setDetailCourse(null)}
         />
       )}
     </main>
