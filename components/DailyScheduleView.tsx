@@ -30,6 +30,49 @@ export default function DailyScheduleView({
   onCourseLongPress,
   onAddClick,
 }: DailyScheduleViewProps) {
+  const getSmartDay = (allCourses: Course[]): DayType => {
+    const WEEKDAYS: DayType[] = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
+    const now = new Date();
+    const todayIndex = now.getDay(); // 0=Minggu, 1=Sen, ..., 5=Jum, 6=Sab
+
+    // Konversi indeks JS ke indeks WEEKDAYS (0=Senin … 4=Jumat)
+    const toWeekdayIdx = (jsDay: number) => jsDay - 1; // 1→0, 2→1, …, 5→4
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+    // Cari hari mulai dari hari ini, jika sudah lewat cari hari berikutnya
+    let startIdx: number;
+    if (todayIndex >= 1 && todayIndex <= 5) {
+      startIdx = toWeekdayIdx(todayIndex);
+    } else {
+      // Weekend → mulai dari Senin
+      startIdx = 0;
+    }
+
+    for (let offset = 0; offset < 5; offset++) {
+      const idx = (startIdx + offset) % 5;
+      const day = WEEKDAYS[idx];
+      const dayCourses = allCourses
+        .filter(c => c.day === day)
+        .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+
+      if (dayCourses.length === 0) continue; // hari ini tidak ada kuliah → lanjut
+
+      const lastCourse = dayCourses[dayCourses.length - 1];
+      const lastEndMinutes = timeToMinutes(lastCourse.endTime);
+
+      // Jika offset > 0, ini hari mendatang → langsung pakai
+      // Jika offset === 0, ini hari ini → cek apakah sudah selesai semua
+      if (offset > 0 || nowMinutes < lastEndMinutes) {
+        return day;
+      }
+      // Semua kuliah hari ini sudah selesai → lanjut cari hari berikutnya
+    }
+
+    // Fallback: kembalikan hari ini atau Senin
+    if (todayIndex >= 1 && todayIndex <= 5) return WEEKDAYS[toWeekdayIdx(todayIndex)];
+    return 'Senin';
+  };
+
   const [selectedDay, setSelectedDay] = useState<DayType>('Senin');
 
   // Long-press state
@@ -72,12 +115,8 @@ export default function DailyScheduleView({
   }, [onCourseLongPress]);
 
   useEffect(() => {
-    const todayIndex = new Date().getDay();
-    if (todayIndex >= 1 && todayIndex <= 5) {
-      const daysMap: DayType[] = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
-      setSelectedDay(daysMap[todayIndex - 1]);
-    }
-  }, []);
+    setSelectedDay(getSmartDay(courses));
+  }, [courses]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const dayCourses = courses
     .filter(c => c.day === selectedDay)
